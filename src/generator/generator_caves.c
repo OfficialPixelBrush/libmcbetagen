@@ -18,8 +18,8 @@ static void carve_cave(struct generator_chunk* g, struct random_java* rand,
 					   double verticalScale) {
 	double chunkCenterX = g->x * CHUNK_WIDTH + 8;
 	double chunkCenterZ = g->z * CHUNK_WIDTH + 8;
-	float var21 = 0.0F;
-	float var22 = 0.0F;
+	float pitchVel = 0.0F;
+	float yawVel = 0.0F;
 	struct random_java rand2;
 	random_java_create(&rand2, random_java_next_long(rand));
 
@@ -32,7 +32,7 @@ static void carve_cave(struct generator_chunk* g, struct random_java* rand,
 	bool branch_tunnel = tunnelStep == -1;
 	tunnelStep = branch_tunnel ? tunnelLength / 2 : tunnelStep;
 
-	int32_t var25 = random_java_next_int_bound(&rand2, tunnelLength / 2)
+	int32_t branchPoint = random_java_next_int_bound(&rand2, tunnelLength / 2)
 		+ tunnelLength / 4;
 
 	bool tunnel_steepness = random_java_next_int_bound(&rand2, 6) == 0;
@@ -40,23 +40,23 @@ static void carve_cave(struct generator_chunk* g, struct random_java* rand,
 		double radius_xz = 1.5
 			+ (double)(math_helper_sin((float)tunnelStep * MATH_JAVA_PI_F
 									   / (float)tunnelLength)
-					   * tunnelRadius * 1.0F);
+					   * tunnelRadius);
 		double radius_y = radius_xz * verticalScale;
 		offset_x += math_helper_cos(carveYaw) * math_helper_cos(carvePitch);
 		offset_y += math_helper_sin(carvePitch);
 		offset_z += math_helper_sin(carveYaw) * math_helper_cos(carvePitch);
 		carvePitch *= tunnel_steepness ? 0.92F : 0.7F;
-		carvePitch += var22 * 0.1F;
-		carveYaw += var21 * 0.1F;
-		var22 *= 0.9F;
-		var21 *= 12.0F / 16.0F;
-		var22
+		carvePitch += yawVel * 0.1F;
+		carveYaw += pitchVel * 0.1F;
+		yawVel *= 0.9F;
+		pitchVel *= 12.0F / 16.0F;
+		yawVel
 			+= (random_java_next_float(&rand2) - random_java_next_float(&rand2))
 			* random_java_next_float(&rand2) * 2.0F;
-		var21
+		pitchVel
 			+= (random_java_next_float(&rand2) - random_java_next_float(&rand2))
 			* random_java_next_float(&rand2) * 4.0F;
-		if(!branch_tunnel && tunnelStep == var25 && tunnelRadius > 1.0F) {
+		if(!branch_tunnel && tunnelStep == branchPoint && tunnelRadius > 1.0F) {
 			carve_cave(g, rand, offset_x, offset_y, offset_z,
 					   random_java_next_float(&rand2) * 0.5F + 0.5F,
 					   carveYaw - MATH_JAVA_PI_F * 0.5F, carvePitch / 3.0F,
@@ -69,11 +69,11 @@ static void carve_cave(struct generator_chunk* g, struct random_java* rand,
 		}
 
 		if(branch_tunnel || random_java_next_int_bound(&rand2, 4) != 0) {
-			double var33 = offset_x - chunkCenterX;
-			double var35 = offset_z - chunkCenterZ;
-			double var37 = tunnelLength - tunnelStep;
-			double var39 = tunnelRadius + 2.0F + CHUNK_WIDTH;
-			if(var33 * var33 + var35 * var35 - var37 * var37 > var39 * var39)
+			double dx = offset_x - chunkCenterX;
+			double dz = offset_z - chunkCenterZ;
+			double dist = tunnelLength - tunnelStep;
+			double limit = tunnelRadius + 2.0F + CHUNK_WIDTH;
+			if((dx * dx + dz * dz - dist * dist) > (limit * limit))
 				return;
 
 			if(offset_x >= chunkCenterX - CHUNK_WIDTH - radius_xz * 2.0
